@@ -1,0 +1,59 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String    @map("password_hash") // Mapeia para o nome da coluna no DB
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt // Prisma gerencia automaticamente o update
+
+  // Relacionamento com Tarefas (opcional, para futuras expansões)
+  tasks        Task[]
+}
+
+model Task {
+  id             Int      @id @default(autoincrement())
+  title          String   @db.VarChar(255) // Título da tarefa
+  description    String?  // Descrição detalhada, pode ser nula
+  createdAt      DateTime @default(now()) // Data de criação da tarefa
+  dueDate        DateTime // Data limite para conclusão da tarefa
+  estimatedTime  Int?     // Tempo previsto de desenvolvimento em horas, pode ser nulo
+
+  // Status da tarefa, usando o enum TaskStatus
+  status         TaskStatus @default(OPEN)
+
+  // Prioridade da tarefa, usando o enum TaskPriority
+  priority       TaskPriority @default(LOW)
+
+  // Relacionamento com Usuário (opcional para esta POC, mas útil para o futuro)
+  author       User?    @relation(fields: [authorId], references: [id])
+  authorId     Int?
+}
+
+// ------------------------------------
+// Enums para Status e Prioridade
+// ------------------------------------
+
+// Enum para os diferentes estados de uma tarefa
+enum TaskStatus {
+  OPEN         // Aberta
+  IN_PROGRESS  // Em andamento
+  COMPLETED    // Concluída
+  OVERDUE      // Atrasada (será derivado, não setado diretamente pelo usuário)
+}
+
+// Enum para os níveis de prioridade de uma tarefa
+enum TaskPriority {
+  LOW      // Baixa
+  MEDIUM   // Média
+  HIGH     // Alta
+  CRITICAL // Altíssima
+}
