@@ -12,15 +12,6 @@ interface RegisterUserPayload {
 export async function registerUser(payload: RegisterUserPayload) {
     const { name, email, password, confirmPassword } = payload;
 
-    // validações
-    if (password !== confirmPassword) {
-        throw new Error('Passwords do not match.');
-    }
-
-    if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long.');
-    }
-
     // hash da senha
     const passwordHash = await bcrypt.hash(password, 10)
 
