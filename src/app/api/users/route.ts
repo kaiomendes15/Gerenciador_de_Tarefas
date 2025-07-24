@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUserSchema } from '../schemas/userSchema';
 import { z } from 'zod';
+import { error } from 'console';
 
 export async function POST(request: NextRequest) {
     
@@ -15,8 +16,9 @@ export async function POST(request: NextRequest) {
 
         if (!validationResult.success) {
             const errors = z.flattenError(validationResult.error); // Pega os erros formatados
+            const errorMessage: string[] = Object.values(errors.fieldErrors).flat() // array de mensagens de error
             return NextResponse.json(
-                { message: 'Validation failed', errors },
+                { message: errorMessage[0], errors },
                 { status: 400 }
             );
         };
@@ -38,18 +40,38 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ message: 'User created successfully', user: safeUser }, { status: 201 })
 
-    } catch (error) {
+    } catch (error: unknown) {
+        console.error('API Error during user registration:', error);
 
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        // **USANDO TYPE GUARDS AQUI:**
+        // Primeiro, verifique se é uma instância de 'Error'
+        if (error instanceof Error) {
+            // Agora TypeScript sabe que 'error' tem uma propriedade 'message'
 
-            if (error.message.includes('Email already exists.')) {
+            if (error.message === 'Email already registered.') {
                 return NextResponse.json({ message: error.message }, { status: 409 });
             }
-            if (error.message.includes('Passwords do not match.')) {
-                return NextResponse.json({ message: error.message }, { status: 400 });
-            }
-        }
+            // Você pode adicionar mais verificações para outras mensagens de erro customizadas
 
+            // Se for um erro conhecido, mas não tratado especificamente para um status code
+            // if (error.message.includes('User registration failed:')) {
+            //     return NextResponse.json({ message: error.message }, { status: 400 }); // Exemplo
+            // }
+
+        } 
+        // Se for um erro do Prisma que não foi tratado e propagado como um 'Error' customizado
+        else if (error instanceof Prisma.PrismaClientKnownRequestError) {
+             // Este bloco é para capturar erros específicos do Prisma diretamente no controller,
+             // se eles não forem tratados e re-lançados como 'Error' nas camadas inferiores.
+             // No seu caso atual, o repositório e serviço transformam erros Prisma em 'Error'.
+             // Mas é uma boa prática para outros casos.
+             if (error.code === 'P2002') { // Exemplo: email duplicado
+                return NextResponse.json({ message: 'Email already registered.' }, { status: 409 });
+            }
+            // Outros códigos de erro Prisma...
+        }
+        
+        // Se não for nenhum dos tipos de erro tratados, ou se for um erro completamente inesperado
         return NextResponse.json({ message: 'Internal server error.' }, { status: 500 });
     }
 }

@@ -18,3 +18,14 @@ export async function createUser(data:Prisma.UserCreateInput) {
     }
     
 }
+
+export async function findUserByEmail(email: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+    return user;
+  } catch (error) {
+    throw new Error('Failed to find user by email.');
+  }
+};
