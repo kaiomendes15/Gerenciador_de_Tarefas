@@ -10,7 +10,7 @@ interface RegisterUserPayload {
 }
 
 export async function registerUser(payload: RegisterUserPayload) {
-    const { name, email, password, confirmPassword } = payload;
+    const { name, email, password } = payload;
     
     const existingUser = await userRepository.findUserByEmail(email);
     if (existingUser) {

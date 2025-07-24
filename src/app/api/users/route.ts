@@ -1,10 +1,8 @@
 import * as userService from '@/services/userService'
-import { containsSpecialCharacters } from '@/utils/validation';
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUserSchema } from '../schemas/userSchema';
 import { z } from 'zod';
-import { error } from 'console';
 
 export async function POST(request: NextRequest) {
     
