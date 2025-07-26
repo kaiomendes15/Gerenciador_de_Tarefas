@@ -14,12 +14,17 @@ export async function POST(request: NextRequest) {
 
         if (!validationResult.success) {
             const errors = z.flattenError(validationResult.error); // Pega os erros formatados
-            const errorMessage: string[] = Object.values(errors.fieldErrors).flat() // array de mensagens de error
+            // const errorMessage: string[] = Object.values(errors.fieldErrors).flat() // Esta linha não é mais necessária para a 'message' principal
+
             return NextResponse.json(
-                { message: errorMessage[0], errors },
+                {
+                    message: 'Validation failed', // <--- CORREÇÃO AQUI: Mantenha a mensagem genérica
+                    errors: errors // Retorna o objeto completo de erros do Zod
+                },
                 { status: 400 }
             );
         };
+
 
         // SE CHEGOU ATÉ AQUI, OS DADOS ESTÃO VÁLIDOS E TIPADOS PELO ZOD
         // Pegue os dados VALIDADOS diretamente de validationResult.data

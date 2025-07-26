@@ -12,7 +12,9 @@ export const registerUserSchema = z.object({
     }),
   email: z.string().email('Email is invalid.'),
   password: z.string().min(6, 'Password must be at least 6 characters long.'),
-  confirmPassword: z.string().min(6, 'Password must be at least 6 characters long.'),
+  
+  // CORREÇÃO AQUI: Remova a mensagem do z.string() para 'confirmPassword'
+  confirmPassword: z.string().min(6, 'Password must be at least 6 characters long.'), // Apenas .min() com sua mensagem
 })
 .refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match.',
