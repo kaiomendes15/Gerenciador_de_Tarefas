@@ -18,9 +18,12 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json(
                 {
-                    message: 'Validation failed', // <--- CORREÇÃO AQUI: Mantenha a mensagem genérica
-                    errors: errors // Retorna o objeto completo de erros do Zod
-                },
+                    message: 'Validation failed',
+                    errors: {
+                        formErrors: errors.formErrors,
+                        fieldErrors: errors.fieldErrors
+                    }
+                } as ApiValidationFailedResponse, // Use o tipo para o cast seguro
                 { status: 400 }
             );
         };
@@ -41,7 +44,10 @@ export async function POST(request: NextRequest) {
             updatedAt: newUser.updatedAt
         };
 
-        return NextResponse.json({ message: 'User created successfully', user: safeUser }, { status: 201 })
+        return NextResponse.json(
+            { message: 'User created successfully', data: { user: safeUser } } as ApiSuccessResponse<{ user: typeof safeUser }>, // Use o tipo para o cast seguro
+            { status: 201 }
+        );
 
     } catch (error: unknown) {
         console.error('API Error during user registration:', error);
@@ -49,32 +55,29 @@ export async function POST(request: NextRequest) {
         // **USANDO TYPE GUARDS AQUI:**
         // Primeiro, verifique se é uma instância de 'Error'
         if (error instanceof Error) {
-            // Agora TypeScript sabe que 'error' tem uma propriedade 'message'
-
             if (error.message === 'Email already registered.') {
-                return NextResponse.json({ message: error.message }, { status: 409 });
+                return NextResponse.json(
+                    { message: 'Email already registered.' } as ApiConflictResponse,
+                    { status: 409 }
+                );
             }
-            // Você pode adicionar mais verificações para outras mensagens de erro customizadas
-
-            // Se for um erro conhecido, mas não tratado especificamente para um status code
-            // if (error.message.includes('User registration failed:')) {
-            //     return NextResponse.json({ message: error.message }, { status: 400 }); // Exemplo
-            // }
-
         } 
         // Se for um erro do Prisma que não foi tratado e propagado como um 'Error' customizado
         else if (error instanceof Prisma.PrismaClientKnownRequestError) {
-             // Este bloco é para capturar erros específicos do Prisma diretamente no controller,
-             // se eles não forem tratados e re-lançados como 'Error' nas camadas inferiores.
-             // No seu caso atual, o repositório e serviço transformam erros Prisma em 'Error'.
-             // Mas é uma boa prática para outros casos.
-             if (error.code === 'P2002') { // Exemplo: email duplicado
-                return NextResponse.json({ message: 'Email already registered.' }, { status: 409 });
-            }
-            // Outros códigos de erro Prisma...
+             
+             if (error.code === 'P2002') { // Erro de violação de unique constraint (ex: email duplicado)
+                return NextResponse.json(
+                    // AQUI: Apenas a propriedade 'message', conforme ApiConflictResponse
+                    { message: 'Email already registered.' } as ApiConflictResponse,
+                    { status: 409 }
+                );
+            };
         }
         
         // Se não for nenhum dos tipos de erro tratados, ou se for um erro completamente inesperado
-        return NextResponse.json({ message: 'Internal server error.' }, { status: 500 });
+        return NextResponse.json(
+            { message: 'Internal server error.' } as ApiInternalServerErrorResponse,
+            { status: 500 }
+        );
     }
 }
