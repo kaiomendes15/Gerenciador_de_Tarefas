@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -7,53 +9,92 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ====================================
+// Modelo User (Usuário)
+// ====================================
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  passwordHash String    @map("password_hash") // Mapeia para o nome da coluna no DB
-  name         String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt // Prisma gerencia automaticamente o update
+  // CORREÇÃO E ATUALIZAÇÃO:
+  // id: Agora é String para compatibilidade com NextAuth.js
+  // emailVerified e image: Campos padrão que NextAuth.js usa/espera
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?   @map("password_hash") // Mapeia para o nome da coluna no DB
+  name          String?
+  emailVerified DateTime? // Campo que NextAuth.js usa para saber se o email foi verificado
+  image         String?   // URL da foto de perfil (para provedores sociais) -> nao vou usar
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  // Relacionamento com Tarefas (opcional, para futuras expansões)
-  tasks        Task[]
+  // Relações que o NextAuth.js espera/cria com os modelos Account e Session
+  accounts      Account[]
+                          // O Prisma Adapter pode ainda referenciar User em seus callbacks.
+
+  // Seu relacionamento com Tarefas
+  tasks         Task[]    // Um usuário pode ter muitas tarefas
 }
 
+// ====================================
+// Modelo Task (Tarefa)
+// ====================================
 model Task {
-  id             Int      @id @default(autoincrement())
-  title          String   @db.VarChar(255) // Título da tarefa
-  description    String?  // Descrição detalhada, pode ser nula
-  createdAt      DateTime @default(now()) // Data de criação da tarefa
-  dueDate        DateTime // Data limite para conclusão da tarefa
-  estimatedTime  Int?     // Tempo previsto de desenvolvimento em horas, pode ser nulo
+  id              Int        @id @default(autoincrement())
+  title           String     @db.VarChar(255)
+  description     String?
+  createdAt       DateTime   @default(now())
+  dueDate         DateTime
+  estimatedTime   Int?
+  status          TaskStatus @default(OPEN)
+  priority        TaskPriority @default(LOW)
 
-  // Status da tarefa, usando o enum TaskStatus
-  status         TaskStatus @default(OPEN)
-
-  // Prioridade da tarefa, usando o enum TaskPriority
-  priority       TaskPriority @default(LOW)
-
-  // Relacionamento com Usuário (opcional para esta POC, mas útil para o futuro)
-  author       User?    @relation(fields: [authorId], references: [id])
-  authorId     Int?
+  // CORREÇÃO: O authorId DEVE ser String para corresponder ao User.id
+  author          User?      @relation(fields: [authorId], references: [id])
+  authorId        String?    // <-- ALTERADO AQUI: De Int? para String?
 }
 
-// ------------------------------------
+// ====================================
+// Modelos NextAuth.js (Account e VerificationToken)
+// ====================================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  // userId agora é String para corresponder ao User.id
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ====================================
 // Enums para Status e Prioridade
-// ------------------------------------
+// ====================================
 
-// Enum para os diferentes estados de uma tarefa
 enum TaskStatus {
-  OPEN         // Aberta
-  IN_PROGRESS  // Em andamento
-  COMPLETED    // Concluída
-  OVERDUE      // Atrasada (será derivado, não setado diretamente pelo usuário)
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
 }
 
-// Enum para os níveis de prioridade de uma tarefa
 enum TaskPriority {
-  LOW      // Baixa
-  MEDIUM   // Média
-  HIGH     // Alta
-  CRITICAL // Altíssima
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
