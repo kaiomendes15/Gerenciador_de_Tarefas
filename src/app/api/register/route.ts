@@ -1,7 +1,7 @@
 import * as userService from '@/services/userService'
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { registerUserSchema } from '../schemas/userSchema';
+import { registerUserSchema } from '../schemas/registerSchema';
 import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
@@ -30,11 +30,9 @@ export async function POST(request: NextRequest) {
 
 
         // SE CHEGOU ATÉ AQUI, OS DADOS ESTÃO VÁLIDOS E TIPADOS PELO ZOD
-        // Pegue os dados VALIDADOS diretamente de validationResult.data
-        const { name, email, password, confirmPassword } = validationResult.data; // << NÃO INCLUA confirmPassword aqui!
+        const { name, email, password } = validationResult.data;
 
-        // CHAME O SERVIÇO COM OS DADOS JÁ VALIDADOS
-        const newUser = await userService.registerUser({ name, email, password, confirmPassword}); // Passe apenas o que o serviço precisa
+        const newUser = await userService.registerUser({ name, email, password });
 
         const safeUser = {
             id: newUser.id,
