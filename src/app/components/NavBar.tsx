@@ -14,7 +14,7 @@ const NavBar = () => {
 
 
   return (
-    <div className='flex bg-amber-400 p-3 space-x-3'>
+    <div className='bg-sky-800'>
       { status === 'authenticated' &&
         <div>
         {session.user!.name}

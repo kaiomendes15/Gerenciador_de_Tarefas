@@ -7,5 +7,5 @@ export const config = {
     // |> *: zero ou mais parametros
     // |> +: um ou mais parametros
     // |> ?: zero ou um parametro
-    matcher: ['/tasks/*'] // middleware só vai ser executado se for nesse path
+    matcher: ['/tasks/:id?'] // middleware só vai ser executado se for nesse path
 }
